@@ -1,0 +1,90 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'edu.sc.seis.launch4j' version '2.5.4'
+}
+
+group = 'uk.infy.luna'
+version = '1.0'
+application {
+    mainClass = 'uk.infy.luna.Main'
+}
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.formdev:flatlaf:3.0'
+    implementation 'com.formdev:flatlaf-intellij-themes:3.0'
+}
+
+test {
+    useJUnitPlatform()
+}
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'uk.infy.luna.Main'
+        )
+    }
+    from('src/main/resources') {
+        into 'uk/infy/luna'
+    }
+}
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir 'src/main/resources'
+        }
+    }
+}
+launch4j {
+    mainClassName = 'uk.infy.luna.Main'
+    outputDir = 'launch4j'
+    outfile = 'LunaClicker.exe'
+    jar = "../libs/LunaClicker-1.0-all.jar"
+    bundledJrePath = "%JAVA_HOME%"
+    icon = "../resources/main/applogo.ico"
+    libraryDir = ""
+}
+tasks.register('jb') {
+    group = 'Application'
+    description = 'Clean out the entirety of build folder, Builds the app, Deletes the extra made .jar file, Then run it.'
+    dependsOn 'clean'
+    doLast {
+        try {
+            exec {
+                def gradlewb = (System.getProperty('os.name').toLowerCase().contains('win')) ? 'gradlew.bat' : './gradlew'
+                commandLine gradlewb, 'build', 'launch4j'
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            println "b u i l d haaaaaaaaaaaaaaaaaaaaaaaaaaas faaaaaaaaaaaaaaaailed (am braindeadeade when madade this)"
+        }
+        def libsDir = file("$buildDir/libs")
+        def jarFileWithoutAll = file("$libsDir/${rootProject.name}-${version}.jar")
+        if (jarFileWithoutAll.exists()) {
+            jarFileWithoutAll.delete()
+        }
+        if (libsDir.exists() && libsDir.listFiles().size() == 1) {
+            try {
+                exec {
+                    workingDir libsDir
+                    commandLine 'java', '-jar', "${rootProject.name}-${version}-all.jar"
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                println "FUK? APP NO LAUNCH"
+            }
+        }
+        def dexeo = file("$buildDir/launch4j/flatlaf-intellij-themes-3.0.jar")
+        def dexet = file("$buildDir/launch4j/flatlaf-3.0.jar")
+        dexeo.delete()
+        dexet.delete()
+    }
+}
